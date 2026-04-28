@@ -1,10 +1,29 @@
 import os
+from collections import defaultdict
 from datetime import datetime, date
 from flask import Flask, render_template, redirect, url_for, request, flash, send_file, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash
 from sqlalchemy import func
 from openpyxl import Workbook
+from docx import Document
+from docx.shared import Pt, Cm
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
+
+
+def set_chinese_font(run, font_name='宋体', font_size=None):
+    """设置run的中文字体"""
+    run.font.name = font_name
+    r = run._element
+    rPr = r.get_or_add_rPr()
+    rFonts = OxmlElement('w:rFonts')
+    rFonts.set(qn('w:eastAsia'), font_name)
+    rPr.insert(0, rFonts)
+    if font_size:
+        run.font.size = Pt(font_size)
 
 from models import db, User, Department, Overtime
 from forms import LoginForm, RegisterForm, UserEditForm, UserCreateForm, DepartmentForm, OvertimeForm, OvertimeFilterForm
@@ -236,6 +255,75 @@ def overtime_delete(id):
     return redirect(url_for('overtime_list'))
 
 
+@app.route('/overtime/export')
+@login_required
+def overtime_export():
+    records = Overtime.query.filter_by(user_id=current_user.id).order_by(Overtime.date.desc()).all()
+
+    doc = Document()
+
+    # 标题
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run('加班详细记录')
+    set_chinese_font(run, '宋体', 18)
+
+    # 副标题
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = subtitle.add_run(f'（{datetime.now().year}年{datetime.now().month}月）')
+    set_chinese_font(run, '宋体', 12)
+
+    doc.add_paragraph()
+
+    # 汇总信息
+    total_days = len(set(r.date for r in records))
+    total_hours = sum(r.hours for r in records)
+    p = doc.add_paragraph()
+    run = p.add_run(f'加班总天数：{total_days}天    加班总时长：{total_hours}小时')
+    set_chinese_font(run, '宋体', 11)
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+    doc.add_paragraph()
+
+    # 创建表格 - 每行一条记录
+    table = doc.add_table(rows=1, cols=6)
+    table.style = 'Table Grid'
+
+    # 表头
+    hdr_cells = table.rows[0].cells
+    for i, text in enumerate(['姓名', '部门', '加班日期', '加班时长', '工作日', '加班内容']):
+        hdr_cells[i].text = text
+        hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in hdr_cells[i].paragraphs[0].runs:
+            set_chinese_font(run, '宋体', 11)
+
+    # 填充数据行
+    for r in records:
+        row = table.add_row()
+        row.cells[0].text = r.user.username
+        row.cells[1].text = r.user.department.name if r.user.department else ''
+        row.cells[2].text = r.date.strftime('%Y-%m-%d')
+        row.cells[3].text = f'{r.hours}小时'
+        row.cells[4].text = '是' if r.is_workday else '否'
+        row.cells[5].text = r.content
+        for cell in row.cells:
+            for run in cell.paragraphs[0].runs:
+                set_chinese_font(run, '宋体', 10)
+
+    doc.add_paragraph()
+    doc.add_paragraph()
+    p = doc.add_paragraph('部门领导签字：')
+    for run in p.runs:
+        set_chinese_font(run, '宋体', 12)
+
+    filename = f'{current_user.username}——加班记录.docx'
+    temp_path = os.path.join('/tmp', filename)
+    doc.save(temp_path)
+
+    return send_file(temp_path, as_attachment=True, download_name=filename)
+
+
 @app.route('/admin/users')
 @login_required
 def admin_users():
@@ -460,28 +548,79 @@ def admin_export():
 
     records = query.order_by(Overtime.date.desc()).all()
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = '加班记录'
+    # 生成 Word 文档
+    doc = Document()
 
-    ws.append(['序号', '姓名', '部门', '加班日期', '加班内容', '加班时长', '是否工作日', '备忘录', '创建时间'])
+    # 标题
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run('加班详细记录')
+    set_chinese_font(run, '宋体', 18)
 
-    for i, r in enumerate(records, 1):
-        ws.append([
-            i,
-            r.user.username,
-            r.user.department.name if r.user.department else '',
-            r.date.strftime('%Y-%m-%d'),
-            r.content,
-            r.hours,
-            '是' if r.is_workday else '否',
-            r.memo or '',
-            r.created_at.strftime('%Y-%m-%d %H:%M')
-        ])
+    # 副标题
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = subtitle.add_run(f'（{datetime.now().year}年{datetime.now().month}月）')
+    set_chinese_font(run, '宋体', 12)
 
-    filename = f'overtime_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    doc.add_paragraph()
+
+    # 按用户分组统计
+    if user_id > 0:
+        target_user = User.query.get(user_id)
+        filename_prefix = f'{target_user.username}——加班记录' if target_user else '加班记录'
+    else:
+        filename_prefix = '加班记录'
+
+    # 汇总信息
+    total_days = len(set(r.date for r in records))
+    total_hours = sum(r.hours for r in records)
+    p = doc.add_paragraph()
+    run = p.add_run(f'加班总天数：{total_days}天    加班总时长：{total_hours}小时')
+    set_chinese_font(run, '宋体', 11)
+
+    doc.add_paragraph()
+
+    # 创建表格 - 每行一条记录
+    table = doc.add_table(rows=1, cols=6)
+    table.style = 'Table Grid'
+
+    # 表头
+    hdr_cells = table.rows[0].cells
+    for i, text in enumerate(['姓名', '部门', '加班日期', '加班时长', '工作日', '加班内容']):
+        hdr_cells[i].text = text
+        hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in hdr_cells[i].paragraphs[0].runs:
+            set_chinese_font(run, '宋体', 11)
+
+    # 按用户分组
+    user_data = defaultdict(list)
+    for r in records:
+        user_data[r.user_id].append(r)
+
+    for uid, user_recs in user_data.items():
+        user_obj = user_recs[0].user
+        for r in user_recs:
+            row = table.add_row()
+            row.cells[0].text = user_obj.username
+            row.cells[1].text = user_obj.department.name if user_obj.department else ''
+            row.cells[2].text = r.date.strftime('%Y-%m-%d')
+            row.cells[3].text = f'{r.hours}小时'
+            row.cells[4].text = '是' if r.is_workday else '否'
+            row.cells[5].text = r.content
+            for cell in row.cells:
+                for run in cell.paragraphs[0].runs:
+                    set_chinese_font(run, '宋体', 10)
+
+    doc.add_paragraph()
+    doc.add_paragraph()
+    p = doc.add_paragraph('部门领导签字：')
+    for run in p.runs:
+        set_chinese_font(run, '宋体', 12)
+
+    filename = f'{filename_prefix}.docx'
     temp_path = os.path.join('/tmp', filename)
-    wb.save(temp_path)
+    doc.save(temp_path)
 
     return send_file(temp_path, as_attachment=True, download_name=filename)
 

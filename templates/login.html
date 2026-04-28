@@ -2,39 +2,124 @@
 
 {% block title %}登录 - 加班填报系统{% endblock %}
 
+{% block extra_css %}
+<style>
+    .login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 0;
+    }
+    .login-card {
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 25px 80px rgba(0,0,0,0.25);
+        overflow: hidden;
+        max-width: 420px;
+        width: 100%;
+    }
+    .login-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2.5rem;
+        text-align: center;
+        color: white;
+    }
+    .login-header h3 {
+        font-weight: 700;
+        margin: 0;
+        font-size: 1.6rem;
+    }
+    .login-header p {
+        margin: 0.5rem 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+    .login-icon {
+        width: 70px;
+        height: 70px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+    }
+    .login-body {
+        padding: 2.5rem;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    .login-btn {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 1rem;
+    }
+    .login-footer {
+        text-align: center;
+        padding: 1.5rem 2.5rem 2rem;
+        color: #718096;
+    }
+    .login-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .login-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5 col-lg-4">
-        <div class="card mt-5">
-            <div class="card-body p-4">
-                <h3 class="text-center mb-4">
-                    <i class="bi bi-clock-history"></i> 加班填报系统
-                </h3>
-                <form method="POST">
-                    {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.username.label }}</label>
-                        {{ form.username(class="form-control") }}
-                        {% if form.username.errors %}
-                            <div class="text-danger small">{{ form.username.errors[0] }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.password.label }}</label>
-                        {{ form.password(class="form-control") }}
-                        {% if form.password.errors %}
-                            <div class="text-danger small">{{ form.password.errors[0] }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
-                <hr class="my-4">
-                <p class="text-center mb-0">
-                    还没有账号？ <a href="{{ url_for('register') }}">立即注册</a>
-                </p>
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-icon">
+                <i class="bi bi-lightning-charge-fill"></i>
             </div>
+            <h3>加班填报系统</h3>
+            <p>高效便捷的加班管理平台</p>
+        </div>
+        <div class="login-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label class="form-label">{{ form.username.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-person text-muted"></i>
+                        </span>
+                        {{ form.username(class="form-control border-start-0", placeholder="请输入用户名") }}
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="text-danger small mt-1">{{ form.username.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ form.password.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-lock text-muted"></i>
+                        </span>
+                        {{ form.password(class="form-control border-start-0", placeholder="请输入密码") }}
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="text-danger small mt-1">{{ form.password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                {{ form.submit(class="btn btn-primary login-btn") }}
+            </form>
+        </div>
+        <div class="login-footer">
+            还没有账号？ <a href="{{ url_for('register') }}">立即注册</a>
         </div>
     </div>
 </div>

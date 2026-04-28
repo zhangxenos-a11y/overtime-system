@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}加班记录 - 加班填报系统{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-list-ul"></i> 加班记录</h2>
+        <p class="mb-0">共 {{ pagination.total }} 条记录</p>
+    </div>
+    <a href="{{ url_for('overtime_add') }}" class="btn btn-light">
+        <i class="bi bi-plus-circle"></i> 新增
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if records %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>加班内容</th>
+                        <th>时长</th>
+                        <th>工作日</th>
+                        <th>备忘录</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ record.content[:50] }}{% if record.content|length > 50 %}...{% endif %}</td>
+                        <td>{{ record.hours }}小时</td>
+                        <td>
+                            {% if record.is_workday %}
+                            <span class="badge bg-success">是</span>
+                            {% else %}
+                            <span class="badge bg-secondary">否</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.memo[:20] if record.memo else '-' }}{% if record.memo and record.memo|length > 20 %}...{% endif %}</td>
+                        <td>
+                            <a href="{{ url_for('overtime_edit', id=record.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('overtime_delete', id=record.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定删除？')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('overtime_list', page=pagination.prev_num) }}">上一页</a></li>
+                {% endif %}
+                {% for p in range(1, pagination.pages + 1) %}
+                    {% if p == pagination.page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                    {% elif p <= pagination.page + 2 and p >= pagination.page - 2 %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('overtime_list', page=p) }}">{{ p }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('overtime_list', page=pagination.next_num) }}">下一页</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <p class="text-muted text-center mb-0 py-4">暂无加班记录，<a href="{{ url_for('overtime_add') }}">去填报</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

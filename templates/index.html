@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 加班填报系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-tachometer-alt"></i> 控制台</h2>
+    <p class="mb-0">欢迎回来，{{ current_user.username }}！</p>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">我的加班次数</h6>
+                        <h3 class="mb-0">{{ my_count }} 次</h3>
+                    </div>
+                    <div class="text-primary">
+                        <i class="bi bi-calendar-check" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">我的加班时长</h6>
+                        <h3 class="mb-0">{{ my_hours }} 小时</h3>
+                    </div>
+                    <div class="text-success">
+                        <i class="bi bi-clock-history" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if current_user.is_admin() or current_user.is_manager() %}
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card bg-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">{% if current_user.is_admin() %}总用户数{% else %}部门人数{% endif %}</h6>
+                        <h3 class="mb-0">{{ stats.dept_users if current_user.is_manager() else stats.total_users }} {% if current_user.is_manager() %}人{% else %}人{% endif %}</h3>
+                    </div>
+                    <div class="text-white">
+                        <i class="bi bi-people" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if current_user.is_admin() or current_user.is_manager() %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card stat-card bg-warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">{% if current_user.is_admin() %}总加班记录{% else %}部门加班记录{% endif %}</h6>
+                        <h3 class="mb-0">{{ stats.dept_records if current_user.is_manager() else stats.total_records }} 条</h3>
+                    </div>
+                    <div class="text-white">
+                        <i class="bi bi-card-list" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card stat-card bg-success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">{% if current_user.is_admin() %}总加班时长{% else %}部门加班时长{% endif %}</h6>
+                        <h3 class="mb-0">{{ stats.dept_hours if current_user.is_manager() else stats.total_hours }} 小时</h3>
+                    </div>
+                    <div class="text-white">
+                        <i class="bi bi-hourglass-split" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-3">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> 最近加班记录</h5>
+    </div>
+    <div class="card-body">
+        {% if stats.recent_records %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>内容</th>
+                        <th>时长</th>
+                        <th>工作日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in stats.recent_records %}
+                    <tr>
+                        <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ record.content[:30] }}{% if record.content|length > 30 %}...{% endif %}</td>
+                        <td>{{ record.hours }}小时</td>
+                        <td>
+                            {% if record.is_workday %}
+                            <span class="badge bg-success">是</span>
+                            {% else %}
+                            <span class="badge bg-secondary">否</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">暂无加班记录</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('overtime_add') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-circle"></i> 填报加班
+    </a>
+    <a href="{{ url_for('overtime_list') }}" class="btn btn-outline-secondary btn-lg ms-2">
+        <i class="bi bi-list-ul"></i> 查看记录
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}填报加班 - 加班填报系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-plus-circle"></i> 填报加班</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">{{ form.date.label }}</label>
+                    {{ form.date(class="form-control") }}
+                    {% if form.date.errors %}
+                        <div class="text-danger small">{{ form.date.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">{{ form.hours.label }}</label>
+                    {{ form.hours(class="form-control", placeholder="如：2.5") }}
+                    {% if form.hours.errors %}
+                        <div class="text-danger small">{{ form.hours.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ form.content.label }}</label>
+                {{ form.content(class="form-control", rows="4", placeholder="请详细描述加班内容") }}
+                {% if form.content.errors %}
+                    <div class="text-danger small">{{ form.content.errors[0] }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    {{ form.is_workday(class="form-check-input") }}
+                    <label class="form-check-label">{{ form.is_workday.label }}</label>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">{{ form.memo.label }}</label>
+                {{ form.memo(class="form-control", rows="2", placeholder="可选：备注信息") }}
+            </div>
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('overtime_list') }}" class="btn btn-secondary">取消</a>
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
